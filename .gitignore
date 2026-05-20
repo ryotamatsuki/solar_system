@@ -4,3 +4,4 @@ test-results/
 zasshi/
 debug.log
 standalone-bundle/
+scripts/make_*issue.mjs
