@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build && npm run build:standalone",
+    "build": "npm run build:standalone",
     "build:standalone": "node scripts/build-standalone.mjs",
     "check:forge": "forgecad run solar-system.forge.js",
     "check:standalone": "node scripts/check-standalone.mjs",

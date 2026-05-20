@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ForgeCAD Solar System</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="side-panel left-panel" aria-label="表示パラメーター">
+        <header class="panel-header">
+          <p class="eyebrow">ForgeCAD model companion</p>
+          <h1>太陽系</h1>
+          <p class="subcopy">天体サイズ比率は実データで固定</p>
+        </header>
+
+        <section class="control-section">
+          <div class="section-title">
+            <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+            <h2>表示</h2>
+          </div>
+          <div id="left-controls" class="control-stack"></div>
+        </section>
+
+        <section class="control-section">
+          <div class="section-title">
+            <i data-lucide="compass" aria-hidden="true"></i>
+            <h2>視点</h2>
+          </div>
+          <div class="camera-tools">
+            <div class="camera-pad" aria-label="視点移動">
+              <span></span>
+              <button class="icon-button" data-camera-step="up" type="button" aria-label="上へ回転">
+                <i data-lucide="arrow-up" aria-hidden="true"></i>
+              </button>
+              <span></span>
+              <button class="icon-button" data-camera-step="left" type="button" aria-label="左へ回転">
+                <i data-lucide="arrow-left" aria-hidden="true"></i>
+              </button>
+              <button id="focus-selected" class="icon-button" type="button" aria-label="選択中の天体へズーム">
+                <i data-lucide="crosshair" aria-hidden="true"></i>
+              </button>
+              <button class="icon-button" data-camera-step="right" type="button" aria-label="右へ回転">
+                <i data-lucide="arrow-right" aria-hidden="true"></i>
+              </button>
+              <span></span>
+              <button class="icon-button" data-camera-step="down" type="button" aria-label="下へ回転">
+                <i data-lucide="arrow-down" aria-hidden="true"></i>
+              </button>
+              <span></span>
+            </div>
+            <button id="reset-view" class="wide-button" type="button">
+              <i data-lucide="home" aria-hidden="true"></i>
+              <span>初期位置</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="control-section">
+          <div class="section-title">
+            <i data-lucide="clock-3" aria-hidden="true"></i>
+            <h2>時間</h2>
+          </div>
+          <div class="button-row single">
+            <button id="play-toggle" class="icon-button" type="button" aria-label="一時停止">
+              <i data-lucide="pause" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div id="time-controls" class="control-stack"></div>
+        </section>
+      </aside>
+
+      <section class="viewport" aria-label="3D太陽系ビュー">
+        <canvas id="scene"></canvas>
+        <div id="label-layer" class="label-layer" aria-hidden="true"></div>
+        <div class="status-strip">
+          <span id="selected-name">地球</span>
+          <span id="selected-ratio">太陽半径比 0.0092</span>
+          <span id="selected-distance">1.000 AU</span>
+        </div>
+      </section>
+
+      <aside class="side-panel right-panel" aria-label="天体パラメーター">
+        <section class="control-section top-section">
+          <div class="section-title">
+            <i data-lucide="orbit" aria-hidden="true"></i>
+            <h2>天体</h2>
+          </div>
+          <label class="select-label" for="body-select">選択</label>
+          <select id="body-select"></select>
+          <dl id="body-facts" class="facts"></dl>
+          <div id="body-brief" class="body-brief"></div>
+          <div id="body-references" class="reference-list"></div>
+        </section>
+
+        <section class="control-section">
+          <div class="section-title">
+            <i data-lucide="eye" aria-hidden="true"></i>
+            <h2>補助表示</h2>
+          </div>
+          <div id="right-controls" class="control-stack"></div>
+        </section>
+
+        <section class="control-section">
+          <div class="section-title">
+            <i data-lucide="ruler" aria-hidden="true"></i>
+            <h2>半径比</h2>
+          </div>
+          <div id="ratio-list" class="ratio-list"></div>
+        </section>
+      </aside>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

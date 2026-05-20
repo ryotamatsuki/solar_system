@@ -25,7 +25,7 @@ async function canvasHasSignal(page) {
 }
 
 test("renders a nonblank solar system and usable side panels", async ({ page }, testInfo) => {
-  await page.goto("/");
+  await page.goto("/dev.html");
   await page.waitForFunction(() => window.__solarSystemReady === true);
   await expect(page.locator("#scene")).toBeVisible();
   await expect(page.locator(".left-panel")).toBeVisible();
