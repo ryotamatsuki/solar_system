@@ -1,0 +1,24 @@
+{
+  "name": "forgecad-solar-system",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build && npm run build:standalone",
+    "build:standalone": "node scripts/build-standalone.mjs",
+    "check:forge": "forgecad run solar-system.forge.js",
+    "check:standalone": "node scripts/check-standalone.mjs",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "forgecad": "^0.9.2",
+    "lucide": "^0.468.0",
+    "three": "^0.181.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "esbuild": "^0.27.7",
+    "vite": "^7.0.0"
+  }
+}
