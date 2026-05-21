@@ -263,16 +263,18 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.18;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.target.set(0, 0, 0);
 
-const ambient = new THREE.AmbientLight("#9a9080", 0.18);
+const ambient = new THREE.AmbientLight("#d6c7ad", 0.58);
 scene.add(ambient);
 
-const sunLight = new THREE.PointLight("#ffd891", 3.8, 3000, 1.2);
+const sunLight = new THREE.PointLight("#ffe0a3", 5.2, 3600, 1.05);
 scene.add(sunLight);
 
 const raycaster = new THREE.Raycaster();
@@ -312,51 +314,218 @@ function makeBodyTexture(body) {
   const ctx = textureCanvas.getContext("2d");
   const rand = seededRandom(body.key);
 
-  ctx.fillStyle = body.color;
-  ctx.fillRect(0, 0, size, size);
-
-  const gradient = ctx.createLinearGradient(0, 0, size, size);
-  gradient.addColorStop(0, body.secondary);
-  gradient.addColorStop(0.48, body.color);
-  gradient.addColorStop(1, "#11100e");
-  ctx.globalAlpha = body.key === "sun" ? 0.38 : 0.28;
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, size, size);
-
-  const bandCount = body.key === "jupiter" ? 24 : body.key === "sun" ? 34 : 10;
-  for (let i = 0; i < bandCount; i += 1) {
-    const y = Math.floor(rand() * size);
-    const h = Math.max(2, Math.floor(rand() * (body.key === "jupiter" ? 20 : 12)));
-    ctx.globalAlpha = 0.08 + rand() * 0.18;
-    ctx.fillStyle = rand() > 0.5 ? body.secondary : "#ffffff";
-    ctx.fillRect(0, y, size, h);
+  function fillLinear(stops) {
+    const gradient = ctx.createLinearGradient(0, 0, size, size);
+    stops.forEach(([offset, color]) => gradient.addColorStop(offset, color));
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
   }
 
-  const flecks = body.key === "sun" ? 600 : 280;
-  for (let i = 0; i < flecks; i += 1) {
-    const x = rand() * size;
-    const y = rand() * size;
-    const r = 0.6 + rand() * (body.key === "sun" ? 3.6 : 2.1);
-    ctx.globalAlpha = body.key === "sun" ? 0.08 + rand() * 0.16 : 0.05 + rand() * 0.12;
-    ctx.fillStyle = rand() > 0.5 ? body.secondary : "#120f0a";
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  if (body.key === "earth") {
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = "#70c98d";
-    for (let i = 0; i < 18; i += 1) {
+  function softNoise(count, colors, minRadius = 0.5, maxRadius = 2.6, alpha = 0.12) {
+    for (let i = 0; i < count; i += 1) {
       const x = rand() * size;
       const y = rand() * size;
+      const r = minRadius + rand() * maxRadius;
+      ctx.globalAlpha = alpha * (0.4 + rand() * 0.8);
+      ctx.fillStyle = colors[Math.floor(rand() * colors.length)];
       ctx.beginPath();
-      ctx.ellipse(x, y, 18 + rand() * 28, 5 + rand() * 12, rand() * Math.PI, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
+  function bands(colors, count, alpha = 1, wave = 8) {
+    let y = 0;
+    for (let i = 0; i < count; i += 1) {
+      const h = size / count + (rand() - 0.5) * 10;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = colors[i % colors.length];
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      for (let x = 0; x <= size; x += 18) {
+        ctx.lineTo(x, y + Math.sin(x * 0.025 + i * 0.7) * wave + rand() * 2);
+      }
+      ctx.lineTo(size, y + h);
+      for (let x = size; x >= 0; x -= 18) {
+        ctx.lineTo(x, y + h + Math.sin(x * 0.025 + i * 0.7) * wave);
+      }
+      ctx.closePath();
+      ctx.fill();
+      y += h;
+    }
+  }
+
+  function craters(count, color, rim = "#d7d0c7") {
+    for (let i = 0; i < count; i += 1) {
+      const x = rand() * size;
+      const y = rand() * size;
+      const r = 2 + rand() * 15;
+      ctx.globalAlpha = 0.34;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = rim;
+      ctx.lineWidth = 0.8 + rand() * 1.2;
+      ctx.stroke();
+    }
+  }
+
+  function blob(x, y, rx, ry, rotation, color, alpha = 1) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, rotation, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function streaks(count, colors, alpha = 0.3) {
+    for (let i = 0; i < count; i += 1) {
+      const y = rand() * size;
+      ctx.globalAlpha = alpha * (0.5 + rand() * 0.9);
+      ctx.strokeStyle = colors[Math.floor(rand() * colors.length)];
+      ctx.lineWidth = 1 + rand() * 5;
+      ctx.beginPath();
+      ctx.moveTo(-20, y);
+      for (let x = -20; x <= size + 20; x += 32) {
+        ctx.lineTo(x, y + Math.sin(x * 0.035 + i) * (3 + rand() * 8));
+      }
+      ctx.stroke();
+    }
+  }
+
+  switch (body.key) {
+    case "sun":
+      fillLinear([
+        [0, "#ffe68f"],
+        [0.42, "#ffb64f"],
+        [1, "#ec6e2f"],
+      ]);
+      bands(["#ffd56d", "#f6933f", "#fff0a6", "#e76f37"], 36, 0.35, 14);
+      softNoise(900, ["#fff2a7", "#ff9a37", "#d84b20"], 0.6, 3.8, 0.16);
+      break;
+    case "mercury":
+      fillLinear([
+        [0, "#d5cec1"],
+        [0.45, "#8f8476"],
+        [1, "#5f574f"],
+      ]);
+      craters(170, "#5b554f", "#efe7d8");
+      softNoise(320, ["#f0e5d4", "#6f665c", "#aaa194"], 0.4, 2.8, 0.16);
+      break;
+    case "venus":
+      fillLinear([
+        [0, "#fff0b7"],
+        [0.5, "#d7a75a"],
+        [1, "#9e703c"],
+      ]);
+      streaks(42, ["#fff0bb", "#c98f4b", "#f6cc7a"], 0.34);
+      bands(["#f5d68a", "#d2a05c", "#ffe9ac", "#b98545"], 18, 0.34, 18);
+      break;
+    case "earth":
+      fillLinear([
+        [0, "#58a7df"],
+        [0.5, "#245da7"],
+        [1, "#0d356d"],
+      ]);
+      [
+        [150, 180, 56, 22, -0.5, "#4fa66d"],
+        [210, 245, 38, 72, 0.2, "#d2b36b"],
+        [325, 175, 66, 34, 0.45, "#63aa70"],
+        [374, 300, 36, 76, -0.15, "#53a66b"],
+        [86, 300, 42, 28, 0.4, "#7bb06b"],
+        [452, 245, 28, 18, 0.2, "#c7b06a"],
+      ].forEach((args) => blob(...args, 0.92));
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "#f5f7f0";
+      ctx.fillRect(0, 0, size, 20);
+      ctx.fillRect(0, size - 24, size, 24);
+      streaks(34, ["#ffffff", "#dbefff"], 0.25);
+      break;
+    case "mars":
+      fillLinear([
+        [0, "#e28b54"],
+        [0.52, "#b85d36"],
+        [1, "#642b22"],
+      ]);
+      softNoise(520, ["#f3b06d", "#77321f", "#c96a3d"], 0.7, 3.6, 0.16);
+      blob(165, 242, 76, 24, -0.25, "#6f3525", 0.52);
+      blob(340, 310, 104, 26, 0.18, "#813a26", 0.44);
+      ctx.globalAlpha = 0.84;
+      ctx.fillStyle = "#f3e6d5";
+      ctx.fillRect(0, 0, size, 16);
+      ctx.fillRect(0, size - 18, size, 18);
+      break;
+    case "jupiter":
+      fillLinear([
+        [0, "#f3ddba"],
+        [0.55, "#c58d62"],
+        [1, "#9d6347"],
+      ]);
+      bands(["#f5e5c6", "#b77852", "#e0b37c", "#7d4638", "#f1d2a1", "#c28259"], 30, 0.86, 10);
+      streaks(48, ["#fff0d0", "#8a4c38", "#d79562"], 0.18);
+      blob(366, 296, 48, 22, -0.12, "#b34d3f", 0.86);
+      blob(360, 293, 30, 13, -0.12, "#e1a06b", 0.48);
+      break;
+    case "saturn":
+      fillLinear([
+        [0, "#fff0bf"],
+        [0.52, "#d6b671"],
+        [1, "#a8834e"],
+      ]);
+      bands(["#f7df9d", "#cfae69", "#fff1bd", "#b89459"], 26, 0.52, 4);
+      streaks(22, ["#fff5ca", "#ad884f"], 0.16);
+      break;
+    case "uranus":
+      fillLinear([
+        [0, "#d3ffff"],
+        [0.55, "#83d8d2"],
+        [1, "#4eaaa8"],
+      ]);
+      bands(["#bff2ef", "#83d8d2", "#6dc9c4"], 18, 0.22, 3);
+      streaks(16, ["#efffff", "#73c9c3"], 0.12);
+      break;
+    case "neptune":
+      fillLinear([
+        [0, "#7da8ff"],
+        [0.48, "#3159d8"],
+        [1, "#152a84"],
+      ]);
+      bands(["#476ee8", "#203ca9", "#6f96ff", "#172d86"], 20, 0.36, 6);
+      blob(356, 270, 48, 20, -0.2, "#101a5e", 0.48);
+      streaks(20, ["#b6ccff", "#1a318e"], 0.16);
+      break;
+    case "pluto":
+      fillLinear([
+        [0, "#efe0cd"],
+        [0.5, "#a98f7b"],
+        [1, "#6b5548"],
+      ]);
+      softNoise(420, ["#f4e2ca", "#7f6252", "#c8ab91"], 0.6, 3.2, 0.18);
+      blob(250, 238, 46, 34, -0.3, "#f5dcc4", 0.72);
+      blob(298, 238, 46, 34, 0.3, "#f5dcc4", 0.72);
+      blob(274, 276, 72, 35, 0, "#f1d2bd", 0.66);
+      break;
+    default:
+      fillLinear([
+        [0, body.secondary],
+        [0.5, body.color],
+        [1, "#1f1b18"],
+      ]);
+      softNoise(280, [body.secondary, body.color, "#ffffff"], 0.6, 2.8, 0.12);
+  }
+
+  ctx.globalAlpha = 0.16;
+  const shade = ctx.createLinearGradient(0, 0, size, 0);
+  shade.addColorStop(0, "#ffffff");
+  shade.addColorStop(0.55, "rgba(255,255,255,0)");
+  shade.addColorStop(1, "#000000");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, size, size);
   ctx.globalAlpha = 1;
+
   const texture = new THREE.CanvasTexture(textureCanvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
@@ -403,15 +572,18 @@ function createBodies() {
   bodies.forEach((body) => {
     const pivot = new THREE.Group();
     pivot.userData.body = body;
+    const bodyTexture = makeBodyTexture(body);
 
     const material =
       body.key === "sun"
-        ? new THREE.MeshBasicMaterial({ map: makeBodyTexture(body), color: body.color })
+        ? new THREE.MeshBasicMaterial({ map: bodyTexture, color: "#fff4c8" })
         : new THREE.MeshStandardMaterial({
-            map: makeBodyTexture(body),
-            color: body.color,
-            roughness: 0.88,
-            metalness: 0.02,
+            map: bodyTexture,
+            color: "#ffffff",
+            roughness: 0.76,
+            metalness: 0,
+            emissive: body.secondary,
+            emissiveIntensity: body.key === "neptune" || body.key === "pluto" ? 0.22 : 0.17,
           });
 
     const mesh = new THREE.Mesh(baseSphere, material);
@@ -429,7 +601,7 @@ function createBodies() {
       const ringMaterial = new THREE.MeshBasicMaterial({
         color: body.ring.color,
         transparent: true,
-        opacity: 0.58,
+        opacity: 0.72,
         side: THREE.DoubleSide,
         depthWrite: false,
       });
